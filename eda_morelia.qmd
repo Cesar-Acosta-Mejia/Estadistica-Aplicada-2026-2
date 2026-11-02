@@ -1,0 +1,723 @@
+---
+title: "Análisis Exploratorio de Datos (EDA) de Morelia"
+subtitle: "Estadistica Aplicada | 5to semestre de Economía industrual"
+author: "Cesar Acosta Mejia"
+lang: es
+format:
+  html:
+    toc: true
+    toc-title: "Contenido"
+    code-fold: true
+    fig-align: center
+    grid:
+      body-width: 950px
+execute:
+  warning: false
+  message: false
+---
+
+```{r paquetes}
+library(tidyverse)
+library(sf)       # datos espaciales
+library(scales)   # formato de ejes y leyendas
+```
+
+# Objetivo
+
+El propósito de este trabajo es describir, con estadística descriptiva y gráficas, cómo se distribuyen algunos indicadores del Censo de Población y Vivienda 2020 dentro de la **ciudad de Morelia**. Para cada variable reviso dónde se concentran los valores, qué tanto varían, si la distribución es simétrica o cargada hacia un lado y qué zonas de la ciudad se salen del patrón. Al final reviso cómo se relacionan algunas variables entre sí.
+
+Conocer bien la forma de los datos es el paso previo a la inferencia: antes de estimar parámetros o construir intervalos hay que saber si los datos se parecen a una normal, si tienen colas largas o valores atípicos.
+
+
+# Fuente de datos: INEGI
+
+Todos los datos son del INEGI y corresponden al Censo 2020:
+
+| Archivo | Contenido | Dónde se descarga |
+|---|---|---|
+| `conjunto_de_datos_ageb_urbana_16_cpv2020.csv` | Principales resultados por AGEB y manzana urbana, Michoacán | Censo 2020 → Datos abiertos |
+| `16a.shp` (+ `.dbf`, `.shx`, `.prj`, `.cpg`) | Polígonos de AGEB urbanas de Michoacán | Marco Geoestadístico, Censo de Población y Vivienda 2020 |
+| `16mun.shp` (+ archivos hermanos) | Polígonos de municipios de Michoacán | Marco Geoestadístico, Censo de Población y Vivienda 2020 |
+
+Los archivos van en una carpeta `data/` junto a este documento. La clave de Michoacán es **16** y la de Morelia **053**.
+
+# Datos espaciales de Morelia
+
+```{r mapas-base}
+#| fig-width: 7
+#| fig-height: 6
+
+ageb_shp <- st_read("data/16a.shp", options = "ENCODING=LATIN1", quiet = TRUE) |>
+  filter(CVE_MUN == "053", CVE_LOC == "0001")     # AGEB de la ciudad de Morelia
+
+mun_shp <- st_read("data/16mun.shp", options = "ENCODING=LATIN1", quiet = TRUE) |>
+  filter(CVE_MUN == "053")                         # contorno del municipio
+
+ggplot() +
+  geom_sf(data = mun_shp, fill = "#F3EFE6", color = "#7A6F5D", linewidth = 0.5) +
+  geom_sf(data = ageb_shp, fill = "#1B6A72", color = "white", linewidth = 0.05) +
+  labs(
+    title = "La ciudad de Morelia dentro de su municipio",
+    subtitle = paste("AGEB urbanas en la ciudad:", nrow(ageb_shp)),
+    caption = "Fuente: INEGI - Marco Geoestadístico 2020"
+  ) +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"))
+```
+
+La mancha urbana ocupa solo una parte del municipio; el resto son zonas rurales, la sierra y pueblos como Capula o Jesús del Monte, que no entran en este análisis.
+
+# Lectura de datos
+
+El CSV del INEGI trae una fila por manzana y además filas con totales. Me quedo con las filas que son **total de AGEB** (`MZA == "000"`, `AGEB != "0000"`) de la localidad **Morelia** (`LOC == "0001"`). El INEGI marca con `*` los datos ocultos por confidencialidad y con `N/D` los no disponibles; los leo como `NA`.
+
+```{r lectura}
+censo <- read_csv(
+  "data/conjunto_de_datos_ageb_urbana_16_cpv2020.csv",
+  col_types = cols(.default = col_character()),
+  na = c("*", "N/D", "")
+)
+
+ageb_morelia <- censo |>
+  filter(MUN == "053", LOC == "0001", MZA == "000", AGEB != "0000") |>
+  mutate(
+    CVEGEO = paste0(ENTIDAD, MUN, LOC, AGEB),     # misma clave que el shapefile
+    across(POBTOT:VPH_SINTIC, as.numeric)
+  )
+
+nrow(ageb_morelia)
+```
+
+## Construcción de indicadores
+
+A diferencia de los datos municipales, aquí casi todo viene como **conteo** de personas o viviendas, así que los porcentajes los calculo yo, cada uno con su denominador correcto:
+
+| Variable | Cálculo | Qué mide |
+|---|---|---|
+| `poblacion` | `POBTOT` | Habitantes de la AGEB |
+| `pct_65` | `POB65_MAS / POBTOT` | Envejecimiento de la zona |
+| `escolaridad` | `GRAPROES` | Años promedio de estudio (15 años y más) |
+| `pct_imss` | `PDER_IMSS / POBTOT` | Afiliación al IMSS (empleo formal) |
+| `pct_pea` | `PEA / P_12YMAS` | Participación en el mercado laboral |
+| `pct_internet` | `VPH_INTER / TVIVPARHAB` | Viviendas habitadas con internet |
+
+La edad mediana no se publica por AGEB, por eso la edad se mide con el porcentaje de personas de 65 años y más.
+
+Las AGEB con muy poca gente (zonas industriales, parques, fraccionamientos recién construidos) generan porcentajes absurdos: con 8 habitantes, una sola persona mueve el indicador 12 puntos y salen valores de 0 % o 100 %. Por eso descarto las AGEB con **menos de 100 habitantes**.
+
+```{r indicadores}
+min_hab <- 100
+
+datos <- ageb_morelia |>
+  transmute(
+    CVEGEO, AGEB,
+    poblacion    = POBTOT,
+    pct_65       = 100 * POB65_MAS / POBTOT,
+    escolaridad  = GRAPROES,
+    pct_imss     = 100 * PDER_IMSS / POBTOT,
+    pct_pea      = 100 * PEA / P_12YMAS,
+    pct_internet = 100 * VPH_INTER / TVIVPARHAB
+  )
+
+descartadas <- sum(datos$poblacion < min_hab)
+datos <- datos |> filter(poblacion >= min_hab)
+
+tibble(
+  `AGEB en la ciudad` = nrow(ageb_morelia),
+  `Descartadas (< 100 hab.)` = descartadas,
+  `AGEB analizadas` = nrow(datos)
+) |> knitr::kable()
+```
+
+## Distancia al centro histórico
+
+Para poder hablar de "centro" y "periferia" con números y no solo a ojo, calculo la distancia en kilómetros desde el centro de cada AGEB hasta la Catedral de Morelia.
+
+```{r distancia}
+catedral <- st_sfc(st_point(c(-101.1923, 19.7024)), crs = 4326) |>
+  st_transform(st_crs(ageb_shp))
+
+distancias <- tibble(
+  CVEGEO  = ageb_shp$CVEGEO,
+  dist_km = as.numeric(st_distance(st_centroid(st_geometry(ageb_shp)), catedral)) / 1000
+)
+
+datos <- datos |> left_join(distancias, by = "CVEGEO")
+```
+
+# Estadísticas descriptivas
+
+Calculo las medidas de tendencia central y de dispersión vistas en clase (rango, desviación media, varianza, desviación estándar, RIC y coeficiente de variación). Agrego dos más que ayudan con tantos datos: la **asimetría** (positiva si la cola larga va a la derecha, negativa si va a la izquierda) y el número de **valores atípicos** según la regla de 1.5 × RIC.
+
+```{r medidas}
+desviacion_media <- function(x) mean(abs(x - mean(x, na.rm = TRUE)), na.rm = TRUE)
+asimetria <- function(x) {
+  x <- na.omit(x)
+  mean((x - mean(x))^3) / sd(x)^3
+}
+
+etiquetas_var <- c(
+  poblacion    = "Población (hab.)",
+  pct_65       = "65 años y más (%)",
+  escolaridad  = "Escolaridad (años)",
+  pct_imss     = "IMSS (%)",
+  pct_pea      = "PEA (%)",
+  pct_internet = "Internet (%)"
+)
+
+medidas <- datos |>
+  select(all_of(names(etiquetas_var))) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "valor") |>
+  group_by(variable) |>
+  summarise(
+    n                = sum(!is.na(valor)),
+    media            = mean(valor, na.rm = TRUE),
+    mediana          = median(valor, na.rm = TRUE),
+    minimo           = min(valor, na.rm = TRUE),
+    maximo           = max(valor, na.rm = TRUE),
+    rango            = maximo - minimo,
+    desviacion_media = desviacion_media(valor),
+    varianza         = var(valor, na.rm = TRUE),
+    desv_estandar    = sd(valor, na.rm = TRUE),
+    ric              = IQR(valor, na.rm = TRUE),
+    cv_porcentaje    = 100 * desv_estandar / media,
+    asimetria        = asimetria(valor),
+    atipicos         = sum(valor < quantile(valor, 0.25, na.rm = TRUE) - 1.5 * ric |
+                           valor > quantile(valor, 0.75, na.rm = TRUE) + 1.5 * ric, na.rm = TRUE)
+  ) |>
+  mutate(variable = factor(variable, levels = names(etiquetas_var))) |>
+  arrange(variable)
+
+medidas |>
+  mutate(variable = etiquetas_var[as.character(variable)]) |>
+  knitr::kable(digits = 2, format.args = list(big.mark = ",", scientific = FALSE),
+               col.names = c("Variable", "n", "Media", "Mediana", "Mín.", "Máx.", "Rango",
+                             "Desv. media", "Varianza", "D.E.", "RIC", "CV (%)",
+                             "Asimetría", "Atípicos"))
+```
+
+El **CV** permite comparar la dispersión de variables con unidades distintas. La PEA es la variable más pareja entre zonas de la ciudad y el porcentaje de adultos mayores la más desigual. La población también tiene un CV alto, pero eso se debe sobre todo a cómo el INEGI traza las AGEB, no a una diferencia social.
+
+```{r funciones}
+#| echo: false
+
+# ---- Funciones para citar resultados en el texto ----
+med <- function(v, stat, dig = 1) {
+  format(round(medidas[[stat]][medidas$variable == v], dig), big.mark = ",", nsmall = dig)
+}
+cor_dist <- function(v) round(cor(datos$dist_km, datos[[v]], use = "complete.obs"), 2)
+anillo <- function(v, desde, hasta) {
+  x <- datos[[v]][datos$dist_km > desde & datos$dist_km <= hasta]
+  format(round(median(x, na.rm = TRUE), 1), nsmall = 1)
+}
+
+# ---- Estilo común de las gráficas ----
+colores <- list(base = "#1B6A72", acento = "#D9822B", claro = "#A9D3CF", texto = "#20343A")
+
+tema <- theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(size = 14, face = "bold", color = colores$texto),
+    plot.subtitle    = element_text(color = "grey35"),
+    axis.title       = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+# Ancho de barra con la regla de Freedman-Diaconis (mejor que Sturges con n grande)
+ancho_fd <- function(x) {
+  x <- na.omit(x)
+  2 * IQR(x) / length(x)^(1/3)
+}
+
+mapa_datos <- ageb_shp |> left_join(datos, by = "CVEGEO")
+
+mapa_var <- function(var, titulo, leyenda, paleta = "mako", etiquetas = label_number()) {
+  ggplot(mapa_datos) +
+    geom_sf(aes(fill = .data[[var]]), color = "white", linewidth = 0.05) +
+    scale_fill_viridis_c(option = paleta, direction = -1, name = leyenda,
+                         labels = etiquetas, na.value = "grey85") +
+    labs(title = titulo, subtitle = "Ciudad de Morelia por AGEB urbana",
+         caption = "Gris: sin dato o menos de 100 habitantes. Fuente: INEGI - CPV 2020") +
+    theme_void(base_size = 12) +
+    theme(plot.title = element_text(size = 15, face = "bold"),
+          legend.key.height = unit(1.2, "cm"))
+}
+
+histograma <- function(var, eje_x, titulo) {
+  ggplot(datos, aes(x = .data[[var]])) +
+    geom_histogram(binwidth = ancho_fd(datos[[var]]), fill = colores$claro, color = "white") +
+    geom_vline(xintercept = mean(datos[[var]], na.rm = TRUE), color = colores$acento, linewidth = 1) +
+    geom_vline(xintercept = median(datos[[var]], na.rm = TRUE), color = colores$texto,
+               linewidth = 1, linetype = "dashed") +
+    labs(title = titulo, subtitle = "Línea naranja: media · línea punteada: mediana",
+         x = eje_x, y = "Número de AGEB") +
+    tema
+}
+
+densidad <- function(var, eje_x, titulo) {
+  ggplot(datos, aes(x = .data[[var]])) +
+    geom_density(fill = colores$claro, color = colores$base, linewidth = 1, alpha = 0.7) +
+    geom_rug(color = colores$base, alpha = 0.3) +
+    labs(title = titulo, x = eje_x, y = "Densidad") +
+    tema
+}
+
+caja <- function(var, eje_y, titulo) {
+  ggplot(datos, aes(x = "", y = .data[[var]])) +
+    geom_boxplot(fill = colores$claro, color = colores$texto, width = 0.45,
+                 outlier.color = colores$acento, outlier.size = 2.5) +
+    geom_jitter(width = 0.12, alpha = 0.25, size = 1, color = colores$base) +
+    labs(title = titulo, subtitle = "Puntos naranjas: valores atípicos (regla de 1.5 × RIC)",
+         x = NULL, y = eje_y) +
+    tema
+}
+
+violin <- function(var, eje_y, titulo) {
+  ggplot(datos, aes(x = "", y = .data[[var]])) +
+    geom_violin(fill = colores$claro, color = colores$base, linewidth = 0.8, trim = FALSE) +
+    geom_boxplot(width = 0.12, fill = "white", color = colores$texto, outlier.shape = NA) +
+    stat_summary(fun = median, geom = "point", shape = 21, size = 3,
+                 fill = colores$acento, color = colores$texto) +
+    labs(title = titulo, x = NULL, y = eje_y) +
+    tema
+}
+
+qq <- function(var, eje_y, titulo) {
+  ggplot(datos, aes(sample = .data[[var]])) +
+    stat_qq_line(color = colores$acento, linewidth = 1) +
+    stat_qq(color = colores$base, alpha = 0.5, size = 1.5) +
+    labs(title = titulo, x = "Cuantiles teóricos (normal estándar)", y = eje_y) +
+    tema
+}
+
+# Con más de 350 AGEB no caben todas en un dot plot: muestro las 10 más altas y las 10 más bajas
+dot_extremos <- function(var, eje_x, titulo) {
+  orden <- datos |> filter(!is.na(.data[[var]])) |> arrange(desc(.data[[var]]))
+  ext <- bind_rows(
+    head(orden, 10) |> mutate(grupo = "10 más altas"),
+    tail(orden, 10) |> mutate(grupo = "10 más bajas")
+  ) |>
+    mutate(valor = .data[[var]], AGEB = fct_reorder(AGEB, valor))
+
+  ggplot(ext, aes(x = valor, y = AGEB, color = grupo)) +
+    geom_vline(xintercept = median(datos[[var]], na.rm = TRUE), linetype = "dashed", color = "grey50") +
+    geom_segment(aes(x = median(datos[[var]], na.rm = TRUE), xend = valor, yend = AGEB),
+                 color = "grey75") +
+    geom_point(size = 3) +
+    scale_color_manual(values = c("10 más altas" = colores$base, "10 más bajas" = colores$acento),
+                       name = NULL) +
+    labs(title = titulo, subtitle = "Línea punteada: mediana de la ciudad",
+         x = eje_x, y = "Clave de AGEB") +
+    tema + theme(legend.position = "top")
+}
+```
+
+# Población por AGEB
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+mapa_var("poblacion", "Habitantes por AGEB", "Habitantes", paleta = "mako",
+         etiquetas = label_comma())
+```
+
+## Histograma
+
+```{r}
+histograma("poblacion", "Habitantes", "Distribución de la población por AGEB") +
+  scale_x_continuous(labels = label_comma())
+```
+
+## Gráfica de densidad
+
+```{r}
+densidad("poblacion", "Habitantes", "Densidad de la población por AGEB") +
+  scale_x_continuous(labels = label_comma())
+```
+
+## Boxplot
+
+```{r}
+caja("poblacion", "Habitantes", "Boxplot de la población por AGEB") +
+  scale_y_continuous(labels = label_comma())
+```
+
+## Gráfico de violín
+
+```{r}
+violin("poblacion", "Habitantes", "Violín de la población por AGEB") +
+  scale_y_continuous(labels = label_comma())
+```
+
+## Q-Q Plot
+
+```{r}
+qq("poblacion", "Habitantes", "Q-Q plot: población por AGEB")
+```
+
+## Dot plot
+
+```{r}
+#| fig-height: 6
+dot_extremos("poblacion", "Habitantes", "AGEB más y menos pobladas") +
+  scale_x_continuous(labels = label_comma())
+```
+
+## Lo que me dice la población
+
+- Una AGEB típica de Morelia tiene alrededor de `r med("poblacion", "mediana", 0)` habitantes (mediana), aunque el rango va de `r med("poblacion", "minimo", 0)` a `r med("poblacion", "maximo", 0)`.
+- La distribución tiene asimetría positiva (`r med("poblacion", "asimetria", 2)`): la mayoría de las AGEB están entre 1,000 y 3,000 habitantes y unas pocas, muy densas, forman la cola derecha. Por eso la media (`r med("poblacion", "media", 0)`) queda arriba de la mediana.
+- El mapa muestra un patrón claro: las AGEB **más pobladas están cerca del centro**, mientras que en la periferia hay muchas AGEB con poca gente. La correlación entre población y distancia a la Catedral es de `r cor_dist("poblacion")`.
+- Esta variable hay que leerla con cuidado: el INEGI dibuja las AGEB con un tamaño de población más o menos parecido, así que su dispersión dice más de cómo se trazó el marco geoestadístico que de diferencias reales entre zonas.
+
+# Población de 65 años y más (%)
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+mapa_var("pct_65", "Porcentaje de población de 65 años y más", "%", paleta = "rocket")
+```
+
+## Histograma
+
+```{r}
+histograma("pct_65", "Población de 65 años y más (%)", "Distribución del % de adultos mayores")
+```
+
+## Gráfica de densidad
+
+```{r}
+densidad("pct_65", "Población de 65 años y más (%)", "Densidad del % de adultos mayores")
+```
+
+## Boxplot
+
+```{r}
+caja("pct_65", "Población de 65 años y más (%)", "Boxplot del % de adultos mayores")
+```
+
+## Gráfico de violín
+
+```{r}
+violin("pct_65", "Población de 65 años y más (%)", "Violín del % de adultos mayores")
+```
+
+## Q-Q Plot
+
+```{r}
+qq("pct_65", "Población de 65 años y más (%)", "Q-Q plot: % de adultos mayores")
+```
+
+## Dot plot
+
+```{r}
+#| fig-height: 6
+dot_extremos("pct_65", "Población de 65 años y más (%)", "AGEB más y menos envejecidas")
+```
+
+## Lo que me dice la edad
+
+- En la AGEB típica, el `r med("pct_65", "mediana")`% de la población tiene 65 años o más, pero hay zonas donde llega al `r med("pct_65", "maximo")`%, es decir, más de uno de cada cuatro habitantes.
+- Es la distribución más asimétrica de todas (asimetría de `r med("pct_65", "asimetria", 2)`) y la que tiene más valores atípicos (`r med("pct_65", "atipicos", 0)`). El histograma está cargado a la izquierda, con una cola larga hacia la derecha, y en el Q-Q plot los puntos de arriba se despegan de la recta.
+- El mapa explica esa cola: los adultos mayores se concentran en el **centro histórico y las colonias más antiguas**. Dentro de 2 km de la Catedral la mediana es de `r anillo("pct_65", 0, 2)`%, y a más de 6 km baja a `r anillo("pct_65", 6, 99)`%. La correlación con la distancia al centro es de `r cor_dist("pct_65")`.
+- La lectura es que la ciudad crece hacia afuera con familias jóvenes que se mudan a fraccionamientos nuevos, mientras el centro envejece con quienes llegaron hace décadas.
+
+# Escolaridad promedio
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+mapa_var("escolaridad", "Grado promedio de escolaridad", "Años", paleta = "viridis")
+```
+
+## Histograma
+
+```{r}
+histograma("escolaridad", "Años de estudio", "Distribución de la escolaridad promedio")
+```
+
+## Gráfica de densidad
+
+```{r}
+densidad("escolaridad", "Años de estudio", "Densidad de la escolaridad promedio")
+```
+
+## Boxplot
+
+```{r}
+caja("escolaridad", "Años de estudio", "Boxplot de la escolaridad promedio")
+```
+
+## Gráfico de violín
+
+```{r}
+violin("escolaridad", "Años de estudio", "Violín de la escolaridad promedio")
+```
+
+## Q-Q Plot
+
+```{r}
+qq("escolaridad", "Años de estudio", "Q-Q plot: escolaridad promedio")
+```
+
+## Dot plot
+
+```{r}
+#| fig-height: 6
+dot_extremos("escolaridad", "Años de estudio", "AGEB con mayor y menor escolaridad")
+```
+
+## Lo que me dice la escolaridad
+
+- En promedio, la población de 15 años y más de una AGEB estudió `r med("escolaridad", "media")` años, que equivale a tener la secundaria terminada y algo de preparatoria.
+- La distribución es casi simétrica (asimetría de `r med("escolaridad", "asimetria", 2)`) y no tiene valores atípicos, pero eso no significa que la ciudad sea pareja: entre la AGEB con menos estudios (`r med("escolaridad", "minimo")` años, primaria apenas terminada) y la de más (`r med("escolaridad", "maximo")` años, equivalente a licenciatura) hay `r med("escolaridad", "rango")` años de diferencia.
+- La curva de densidad es ancha y aplanada, como una meseta entre 8 y 14 años, y no como una campana con un pico claro. Por eso en el Q-Q plot los extremos se separan de la recta: la distribución tiene "hombros" donde una normal tendría colas.
+- En el mapa, la escolaridad más alta se concentra en el **centro-sur y el sureste** de la ciudad y la más baja en el **norte y la periferia poniente**. A diferencia de la edad, aquí no hay un patrón centro-periferia (correlación con la distancia de `r cor_dist("escolaridad")`); la división es más bien entre zonas de la ciudad.
+
+# Afiliados al IMSS (%)
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+mapa_var("pct_imss", "Porcentaje de población afiliada al IMSS", "%", paleta = "mako")
+```
+
+## Histograma
+
+```{r}
+histograma("pct_imss", "Afiliados al IMSS (%)", "Distribución de la afiliación al IMSS")
+```
+
+## Gráfica de densidad
+
+```{r}
+densidad("pct_imss", "Afiliados al IMSS (%)", "Densidad de la afiliación al IMSS")
+```
+
+## Boxplot
+
+```{r}
+caja("pct_imss", "Afiliados al IMSS (%)", "Boxplot de la afiliación al IMSS")
+```
+
+## Gráfico de violín
+
+```{r}
+violin("pct_imss", "Afiliados al IMSS (%)", "Violín de la afiliación al IMSS")
+```
+
+## Q-Q Plot
+
+```{r}
+qq("pct_imss", "Afiliados al IMSS (%)", "Q-Q plot: afiliación al IMSS")
+```
+
+## Dot plot
+
+```{r}
+#| fig-height: 6
+dot_extremos("pct_imss", "Afiliados al IMSS (%)", "AGEB con mayor y menor afiliación al IMSS")
+```
+
+## Lo que me dice el IMSS
+
+- Tener IMSS depende de tener (o de que alguien en la familia tenga) un **empleo formal**, así que este indicador funciona como termómetro de la formalidad laboral.
+- En la AGEB típica está afiliado el `r med("pct_imss", "mediana")`% de la población, con un rango que va del `r med("pct_imss", "minimo")`% al `r med("pct_imss", "maximo")`%. En las zonas con menos afiliación, solo uno de cada seis habitantes tiene IMSS.
+- La asimetría es negativa (`r med("pct_imss", "asimetria", 2)`): la mayoría de las AGEB está entre 35 % y 55 %, y la cola larga va hacia los valores bajos. Esas AGEB de la cola izquierda coinciden con las de menor escolaridad, lo que sugiere que donde hay menos estudios también hay más informalidad.
+- Un CV de `r med("pct_imss", "cv_porcentaje")`% indica una dispersión moderada: hay diferencias reales entre zonas, pero menos marcadas que en el acceso a internet o en el envejecimiento.
+
+# Población de 12 años y más económicamente activa (%)
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+mapa_var("pct_pea", "Porcentaje de población de 12 años y más económicamente activa", "%",
+         paleta = "cividis")
+```
+
+## Histograma
+
+```{r}
+histograma("pct_pea", "PEA (%)", "Distribución de la PEA")
+```
+
+## Gráfica de densidad
+
+```{r}
+densidad("pct_pea", "PEA (%)", "Densidad de la PEA")
+```
+
+## Boxplot
+
+```{r}
+caja("pct_pea", "PEA (%)", "Boxplot de la PEA")
+```
+
+## Gráfico de violín
+
+```{r}
+violin("pct_pea", "PEA (%)", "Violín de la PEA")
+```
+
+## Q-Q Plot
+
+```{r}
+qq("pct_pea", "PEA (%)", "Q-Q plot: PEA")
+```
+
+## Dot plot
+
+```{r}
+#| fig-height: 6
+dot_extremos("pct_pea", "PEA (%)", "AGEB con mayor y menor participación laboral")
+```
+
+## Lo que me dice la PEA
+
+- La PEA es el porcentaje de personas de 12 años o más que trabajan o buscan trabajo. En Morelia el promedio por AGEB es de `r med("pct_pea", "media")`%, y la media y la mediana son prácticamente iguales.
+- Es la variable más pareja de todas (CV de `r med("pct_pea", "cv_porcentaje")`%) y la más cercana a una campana: el histograma es simétrico (asimetría de `r med("pct_pea", "asimetria", 2)`) y en el Q-Q plot casi todos los puntos siguen la recta, salvo algunos en las puntas.
+- Los valores atípicos bajos (cerca de `r med("pct_pea", "minimo", 0)`%) corresponden a AGEB con muchos adultos mayores. Tiene sentido: los jubilados cuentan como población no activa. Por lo mismo, la PEA sube conforme uno se aleja del centro (correlación con la distancia de `r cor_dist("pct_pea")`).
+- Estar "activo" no dice nada sobre la calidad del empleo; para eso hay que compararla con el IMSS, como hago más adelante.
+
+# Viviendas con internet (%)
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+mapa_var("pct_internet", "Porcentaje de viviendas habitadas con internet", "%",
+         paleta = "viridis")
+```
+
+## Histograma
+
+```{r}
+histograma("pct_internet", "Viviendas con internet (%)", "Distribución del acceso a internet")
+```
+
+## Gráfica de densidad
+
+```{r}
+densidad("pct_internet", "Viviendas con internet (%)", "Densidad del acceso a internet")
+```
+
+## Boxplot
+
+```{r}
+caja("pct_internet", "Viviendas con internet (%)", "Boxplot del acceso a internet")
+```
+
+## Gráfico de violín
+
+```{r}
+violin("pct_internet", "Viviendas con internet (%)", "Violín del acceso a internet")
+```
+
+## Q-Q Plot
+
+```{r}
+qq("pct_internet", "Viviendas con internet (%)", "Q-Q plot: acceso a internet")
+```
+
+## Dot plot
+
+```{r}
+#| fig-height: 6
+dot_extremos("pct_internet", "Viviendas con internet (%)", "AGEB con mayor y menor acceso a internet")
+```
+
+## Lo que me dice el internet
+
+- En la AGEB típica, `r med("pct_internet", "mediana", 0)` de cada 100 viviendas tienen internet. Pero esta es la variable social con el rango más amplio: va del `r med("pct_internet", "minimo")`% al `r med("pct_internet", "maximo")`%. Hay zonas donde prácticamente todas las casas están conectadas y otras donde casi ninguna.
+- La asimetría es negativa (`r med("pct_internet", "asimetria", 2)`): la mayoría de las AGEB tienen buen acceso y la cola larga va hacia los valores bajos. Los valores atípicos son todos de ese lado, AGEB muy rezagadas.
+- El mapa del internet se parece mucho al de escolaridad, con el sur y el sureste mejor conectados y el norte y la periferia rezagados. Esa coincidencia la reviso con la correlación más abajo.
+- Para efectos de la pandemia (el censo se levantó en marzo de 2020), esto importa: en las AGEB con poco internet, las clases y el trabajo a distancia eran mucho más difíciles.
+
+# ¿Alguna variable es normal?
+
+Con cientos de datos los Q-Q plots ya permiten opinar sobre la normalidad, pero conviene confirmarlo con una prueba. Uso la de **Shapiro–Wilk**, cuya hipótesis nula es que los datos vienen de una normal; un valor p menor a 0.05 lleva a rechazarla.
+
+```{r shapiro}
+tibble(variable = names(etiquetas_var)) |>
+  mutate(
+    p = map_dbl(variable, \(v) shapiro.test(datos[[v]])$p.value),
+    Variable = etiquetas_var[variable],
+    W = map_dbl(variable, \(v) shapiro.test(datos[[v]])$statistic),
+    `Valor p` = if_else(p < 0.001, "< 0.001", format(round(p, 3), nsmall = 3)),
+    Conclusión = if_else(p < 0.05, "Se rechaza normalidad", "No se rechaza normalidad")
+  ) |>
+  select(Variable, W, `Valor p`, Conclusión) |>
+  knitr::kable(digits = 3)
+```
+
+Se rechaza la normalidad en todas las variables, lo cual coincide con lo que se veía en las gráficas. La PEA es la que más se acerca (su valor p es el más alto, apenas por debajo de 0.05). Esto no impide hacer inferencia: con tantas observaciones, el **Teorema Central del Límite** garantiza que la **media muestral** sí se distribuye aproximadamente normal aunque la variable original no lo sea.
+
+# Relaciones entre variables
+
+## Matriz de correlaciones
+
+```{r correlaciones}
+#| fig-width: 7
+#| fig-height: 6
+vars_cor <- c("pct_65", "escolaridad", "pct_imss", "pct_pea", "pct_internet")
+cortas <- c(pct_65 = "65+ (%)", escolaridad = "Escolaridad", pct_imss = "IMSS (%)",
+            pct_pea = "PEA (%)", pct_internet = "Internet (%)")
+
+matriz <- cor(datos[vars_cor], use = "pairwise.complete.obs")
+
+as_tibble(matriz, rownames = "v1") |>
+  pivot_longer(-v1, names_to = "v2", values_to = "r") |>
+  mutate(v1 = factor(cortas[v1], levels = cortas),
+         v2 = factor(cortas[v2], levels = rev(cortas))) |>
+  ggplot(aes(v1, v2, fill = r)) +
+  geom_tile(color = "white", linewidth = 1) +
+  geom_text(aes(label = number(r, accuracy = 0.01), color = abs(r) > 0.6),
+            size = 4.2, show.legend = FALSE) +
+  scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey15")) +
+  scale_fill_gradient2(low = colores$acento, mid = "white", high = colores$base,
+                       limits = c(-1, 1), name = "r") +
+  labs(title = "Correlaciones entre indicadores", x = NULL, y = NULL) +
+  tema + theme(panel.grid = element_blank())
+```
+
+```{r}
+#| echo: false
+rr <- function(a, b) round(matriz[a, b], 2)
+```
+
+## Relación entre PEA y derechohabientes IMSS (%)
+
+```{r}
+#| fig-width: 7
+ggplot(datos, aes(pct_pea, pct_imss)) +
+  geom_point(color = colores$base, size = 2, alpha = 0.5) +
+  geom_smooth(method = "lm", color = colores$acento, fill = colores$claro) +
+  labs(title = "Relación PEA (%) y derechohabientes IMSS (%)",
+       subtitle = paste0("Cada punto es una AGEB · r = ", rr("pct_pea", "pct_imss")),
+       x = "PEA (%)", y = "Afiliados al IMSS (%)") +
+  tema
+```
+
+La correlación entre PEA e IMSS es de apenas **r = `r rr("pct_pea", "pct_imss")`**, prácticamente nula. Que en una zona haya más gente trabajando **no** implica que haya más gente con IMSS. Esto apunta a la informalidad: en muchas AGEB la gente trabaja, pero sin prestaciones. A diferencia del análisis con pocos municipios, aquí hay `r nrow(datos)` puntos, así que la banda de confianza de la recta es angosta y el resultado es bastante estable.
+
+## Relación entre escolaridad e internet
+
+```{r}
+#| fig-width: 7
+ggplot(datos, aes(escolaridad, pct_internet)) +
+  geom_point(color = colores$base, size = 2, alpha = 0.5) +
+  geom_smooth(method = "lm", color = colores$acento, fill = colores$claro) +
+  labs(title = "Relación escolaridad y viviendas con internet",
+       subtitle = paste0("Cada punto es una AGEB · r = ", rr("escolaridad", "pct_internet")),
+       x = "Escolaridad promedio (años)", y = "Viviendas con internet (%)") +
+  tema
+```
+
+Esta es la relación más fuerte de la matriz: **r = `r rr("escolaridad", "pct_internet")`**. Las AGEB con más años de estudio son casi siempre las mejor conectadas, y la escolaridad también se relaciona con el IMSS (r = `r rr("escolaridad", "pct_imss")`). Estas tres variables parecen medir lo mismo desde distintos ángulos: el **nivel socioeconómico** de la zona. Correlación no es causalidad, sin embargo: no es que estudiar "dé" internet, sino que los hogares con más ingreso tienden a tener ambas cosas.
+
+La otra relación fuerte es negativa, entre adultos mayores y PEA (r = `r rr("pct_65", "pct_pea")`), y confirma lo que se veía en el mapa: donde hay más jubilados, menos gente forma parte de la fuerza laboral.
+
+# Conclusiones
+
+- **Morelia tiene dos formas de desigualdad interna.** La primera es **generacional** y va del centro a la periferia: el centro histórico y las colonias antiguas están envejecidas y la periferia es joven. La segunda es **socioeconómica** y va de sur a norte: escolaridad, internet e IMSS son más altos en el sur y sureste y más bajos en el norte.
+- **La participación laboral es pareja, pero la calidad del empleo no.** La PEA casi no cambia entre zonas y no se relaciona con el IMSS. En toda la ciudad la gente trabaja en proporciones parecidas; lo que cambia es si lo hace con prestaciones.
+- **Ninguna variable es normal.** La edad y el internet tienen colas largas, la escolaridad es aplanada y la PEA es la que más se acerca a una campana. Para la inferencia esto importa: con `r nrow(datos)` observaciones se puede usar el TCL para la media, pero para describir una AGEB "típica" conviene reportar la mediana.
+- **Bajar al nivel de AGEB valió la pena.** Con cientos de observaciones las formas de las distribuciones se distinguen bien, los atípicos tienen una explicación geográfica y las correlaciones son estables. La limitación es que tuve que descartar `r descartadas` AGEB con menos de 100 habitantes y que algunos datos vienen ocultos por confidencialidad.

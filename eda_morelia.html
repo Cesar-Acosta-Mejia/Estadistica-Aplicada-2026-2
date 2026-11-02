@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Cesar Acosta Mejia">
+
+<title>Análisis Exploratorio de Datos (EDA) de Morelia</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="eda_morelia_files/libs/clipboard/clipboard.min.js"></script>
+<script src="eda_morelia_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="eda_morelia_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="eda_morelia_files/libs/quarto-html/popper.min.js"></script>
+<script src="eda_morelia_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="eda_morelia_files/libs/quarto-html/anchor.min.js"></script>
+<link href="eda_morelia_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="eda_morelia_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="eda_morelia_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="eda_morelia_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="eda_morelia_files/libs/bootstrap/bootstrap-f4e14881f105605c630af7b026a27d78.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contenido</h2>
+   
+  <ul>
+  <li><a href="#objetivo" id="toc-objetivo" class="nav-link active" data-scroll-target="#objetivo">Objetivo</a></li>
+  <li><a href="#fuente-de-datos-inegi" id="toc-fuente-de-datos-inegi" class="nav-link" data-scroll-target="#fuente-de-datos-inegi">Fuente de datos: INEGI</a></li>
+  <li><a href="#datos-espaciales-de-morelia" id="toc-datos-espaciales-de-morelia" class="nav-link" data-scroll-target="#datos-espaciales-de-morelia">Datos espaciales de Morelia</a></li>
+  <li><a href="#lectura-de-datos" id="toc-lectura-de-datos" class="nav-link" data-scroll-target="#lectura-de-datos">Lectura de datos</a>
+  <ul class="collapse">
+  <li><a href="#construcción-de-indicadores" id="toc-construcción-de-indicadores" class="nav-link" data-scroll-target="#construcción-de-indicadores">Construcción de indicadores</a></li>
+  <li><a href="#distancia-al-centro-histórico" id="toc-distancia-al-centro-histórico" class="nav-link" data-scroll-target="#distancia-al-centro-histórico">Distancia al centro histórico</a></li>
+  </ul></li>
+  <li><a href="#estadísticas-descriptivas" id="toc-estadísticas-descriptivas" class="nav-link" data-scroll-target="#estadísticas-descriptivas">Estadísticas descriptivas</a></li>
+  <li><a href="#población-por-ageb" id="toc-población-por-ageb" class="nav-link" data-scroll-target="#población-por-ageb">Población por AGEB</a>
+  <ul class="collapse">
+  <li><a href="#histograma" id="toc-histograma" class="nav-link" data-scroll-target="#histograma">Histograma</a></li>
+  <li><a href="#gráfica-de-densidad" id="toc-gráfica-de-densidad" class="nav-link" data-scroll-target="#gráfica-de-densidad">Gráfica de densidad</a></li>
+  <li><a href="#boxplot" id="toc-boxplot" class="nav-link" data-scroll-target="#boxplot">Boxplot</a></li>
+  <li><a href="#gráfico-de-violín" id="toc-gráfico-de-violín" class="nav-link" data-scroll-target="#gráfico-de-violín">Gráfico de violín</a></li>
+  <li><a href="#q-q-plot" id="toc-q-q-plot" class="nav-link" data-scroll-target="#q-q-plot">Q-Q Plot</a></li>
+  <li><a href="#dot-plot" id="toc-dot-plot" class="nav-link" data-scroll-target="#dot-plot">Dot plot</a></li>
+  <li><a href="#lo-que-me-dice-la-población" id="toc-lo-que-me-dice-la-población" class="nav-link" data-scroll-target="#lo-que-me-dice-la-población">Lo que me dice la población</a></li>
+  </ul></li>
+  <li><a href="#población-de-65-años-y-más" id="toc-población-de-65-años-y-más" class="nav-link" data-scroll-target="#población-de-65-años-y-más">Población de 65 años y más (%)</a>
+  <ul class="collapse">
+  <li><a href="#histograma-1" id="toc-histograma-1" class="nav-link" data-scroll-target="#histograma-1">Histograma</a></li>
+  <li><a href="#gráfica-de-densidad-1" id="toc-gráfica-de-densidad-1" class="nav-link" data-scroll-target="#gráfica-de-densidad-1">Gráfica de densidad</a></li>
+  <li><a href="#boxplot-1" id="toc-boxplot-1" class="nav-link" data-scroll-target="#boxplot-1">Boxplot</a></li>
+  <li><a href="#gráfico-de-violín-1" id="toc-gráfico-de-violín-1" class="nav-link" data-scroll-target="#gráfico-de-violín-1">Gráfico de violín</a></li>
+  <li><a href="#q-q-plot-1" id="toc-q-q-plot-1" class="nav-link" data-scroll-target="#q-q-plot-1">Q-Q Plot</a></li>
+  <li><a href="#dot-plot-1" id="toc-dot-plot-1" class="nav-link" data-scroll-target="#dot-plot-1">Dot plot</a></li>
+  <li><a href="#lo-que-me-dice-la-edad" id="toc-lo-que-me-dice-la-edad" class="nav-link" data-scroll-target="#lo-que-me-dice-la-edad">Lo que me dice la edad</a></li>
+  </ul></li>
+  <li><a href="#escolaridad-promedio" id="toc-escolaridad-promedio" class="nav-link" data-scroll-target="#escolaridad-promedio">Escolaridad promedio</a>
+  <ul class="collapse">
+  <li><a href="#histograma-2" id="toc-histograma-2" class="nav-link" data-scroll-target="#histograma-2">Histograma</a></li>
+  <li><a href="#gráfica-de-densidad-2" id="toc-gráfica-de-densidad-2" class="nav-link" data-scroll-target="#gráfica-de-densidad-2">Gráfica de densidad</a></li>
+  <li><a href="#boxplot-2" id="toc-boxplot-2" class="nav-link" data-scroll-target="#boxplot-2">Boxplot</a></li>
+  <li><a href="#gráfico-de-violín-2" id="toc-gráfico-de-violín-2" class="nav-link" data-scroll-target="#gráfico-de-violín-2">Gráfico de violín</a></li>
+  <li><a href="#q-q-plot-2" id="toc-q-q-plot-2" class="nav-link" data-scroll-target="#q-q-plot-2">Q-Q Plot</a></li>
+  <li><a href="#dot-plot-2" id="toc-dot-plot-2" class="nav-link" data-scroll-target="#dot-plot-2">Dot plot</a></li>
+  <li><a href="#lo-que-me-dice-la-escolaridad" id="toc-lo-que-me-dice-la-escolaridad" class="nav-link" data-scroll-target="#lo-que-me-dice-la-escolaridad">Lo que me dice la escolaridad</a></li>
+  </ul></li>
+  <li><a href="#afiliados-al-imss" id="toc-afiliados-al-imss" class="nav-link" data-scroll-target="#afiliados-al-imss">Afiliados al IMSS (%)</a>
+  <ul class="collapse">
+  <li><a href="#histograma-3" id="toc-histograma-3" class="nav-link" data-scroll-target="#histograma-3">Histograma</a></li>
+  <li><a href="#gráfica-de-densidad-3" id="toc-gráfica-de-densidad-3" class="nav-link" data-scroll-target="#gráfica-de-densidad-3">Gráfica de densidad</a></li>
+  <li><a href="#boxplot-3" id="toc-boxplot-3" class="nav-link" data-scroll-target="#boxplot-3">Boxplot</a></li>
+  <li><a href="#gráfico-de-violín-3" id="toc-gráfico-de-violín-3" class="nav-link" data-scroll-target="#gráfico-de-violín-3">Gráfico de violín</a></li>
+  <li><a href="#q-q-plot-3" id="toc-q-q-plot-3" class="nav-link" data-scroll-target="#q-q-plot-3">Q-Q Plot</a></li>
+  <li><a href="#dot-plot-3" id="toc-dot-plot-3" class="nav-link" data-scroll-target="#dot-plot-3">Dot plot</a></li>
+  <li><a href="#lo-que-me-dice-el-imss" id="toc-lo-que-me-dice-el-imss" class="nav-link" data-scroll-target="#lo-que-me-dice-el-imss">Lo que me dice el IMSS</a></li>
+  </ul></li>
+  <li><a href="#población-de-12-años-y-más-económicamente-activa" id="toc-población-de-12-años-y-más-económicamente-activa" class="nav-link" data-scroll-target="#población-de-12-años-y-más-económicamente-activa">Población de 12 años y más económicamente activa (%)</a>
+  <ul class="collapse">
+  <li><a href="#histograma-4" id="toc-histograma-4" class="nav-link" data-scroll-target="#histograma-4">Histograma</a></li>
+  <li><a href="#gráfica-de-densidad-4" id="toc-gráfica-de-densidad-4" class="nav-link" data-scroll-target="#gráfica-de-densidad-4">Gráfica de densidad</a></li>
+  <li><a href="#boxplot-4" id="toc-boxplot-4" class="nav-link" data-scroll-target="#boxplot-4">Boxplot</a></li>
+  <li><a href="#gráfico-de-violín-4" id="toc-gráfico-de-violín-4" class="nav-link" data-scroll-target="#gráfico-de-violín-4">Gráfico de violín</a></li>
+  <li><a href="#q-q-plot-4" id="toc-q-q-plot-4" class="nav-link" data-scroll-target="#q-q-plot-4">Q-Q Plot</a></li>
+  <li><a href="#dot-plot-4" id="toc-dot-plot-4" class="nav-link" data-scroll-target="#dot-plot-4">Dot plot</a></li>
+  <li><a href="#lo-que-me-dice-la-pea" id="toc-lo-que-me-dice-la-pea" class="nav-link" data-scroll-target="#lo-que-me-dice-la-pea">Lo que me dice la PEA</a></li>
+  </ul></li>
+  <li><a href="#viviendas-con-internet" id="toc-viviendas-con-internet" class="nav-link" data-scroll-target="#viviendas-con-internet">Viviendas con internet (%)</a>
+  <ul class="collapse">
+  <li><a href="#histograma-5" id="toc-histograma-5" class="nav-link" data-scroll-target="#histograma-5">Histograma</a></li>
+  <li><a href="#gráfica-de-densidad-5" id="toc-gráfica-de-densidad-5" class="nav-link" data-scroll-target="#gráfica-de-densidad-5">Gráfica de densidad</a></li>
+  <li><a href="#boxplot-5" id="toc-boxplot-5" class="nav-link" data-scroll-target="#boxplot-5">Boxplot</a></li>
+  <li><a href="#gráfico-de-violín-5" id="toc-gráfico-de-violín-5" class="nav-link" data-scroll-target="#gráfico-de-violín-5">Gráfico de violín</a></li>
+  <li><a href="#q-q-plot-5" id="toc-q-q-plot-5" class="nav-link" data-scroll-target="#q-q-plot-5">Q-Q Plot</a></li>
+  <li><a href="#dot-plot-5" id="toc-dot-plot-5" class="nav-link" data-scroll-target="#dot-plot-5">Dot plot</a></li>
+  <li><a href="#lo-que-me-dice-el-internet" id="toc-lo-que-me-dice-el-internet" class="nav-link" data-scroll-target="#lo-que-me-dice-el-internet">Lo que me dice el internet</a></li>
+  </ul></li>
+  <li><a href="#alguna-variable-es-normal" id="toc-alguna-variable-es-normal" class="nav-link" data-scroll-target="#alguna-variable-es-normal">¿Alguna variable es normal?</a></li>
+  <li><a href="#relaciones-entre-variables" id="toc-relaciones-entre-variables" class="nav-link" data-scroll-target="#relaciones-entre-variables">Relaciones entre variables</a>
+  <ul class="collapse">
+  <li><a href="#matriz-de-correlaciones" id="toc-matriz-de-correlaciones" class="nav-link" data-scroll-target="#matriz-de-correlaciones">Matriz de correlaciones</a></li>
+  <li><a href="#relación-entre-pea-y-derechohabientes-imss" id="toc-relación-entre-pea-y-derechohabientes-imss" class="nav-link" data-scroll-target="#relación-entre-pea-y-derechohabientes-imss">Relación entre PEA y derechohabientes IMSS (%)</a></li>
+  <li><a href="#relación-entre-escolaridad-e-internet" id="toc-relación-entre-escolaridad-e-internet" class="nav-link" data-scroll-target="#relación-entre-escolaridad-e-internet">Relación entre escolaridad e internet</a></li>
+  </ul></li>
+  <li><a href="#conclusiones" id="toc-conclusiones" class="nav-link" data-scroll-target="#conclusiones">Conclusiones</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Análisis Exploratorio de Datos (EDA) de Morelia</h1>
+<p class="subtitle lead">Estadistica Aplicada | 5to semestre de Economía industrual</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Autor/a</div>
+    <div class="quarto-title-meta-contents">
+             <p>Cesar Acosta Mejia </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)       <span class="co"># datos espaciales</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)   <span class="co"># formato de ejes y leyendas</span></span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<section id="objetivo" class="level1">
+<h1>Objetivo</h1>
+<p>El propósito de este trabajo es describir, con estadística descriptiva y gráficas, cómo se distribuyen algunos indicadores del Censo de Población y Vivienda 2020 dentro de la <strong>ciudad de Morelia</strong>. Para cada variable reviso dónde se concentran los valores, qué tanto varían, si la distribución es simétrica o cargada hacia un lado y qué zonas de la ciudad se salen del patrón. Al final reviso cómo se relacionan algunas variables entre sí.</p>
+<p>Conocer bien la forma de los datos es el paso previo a la inferencia: antes de estimar parámetros o construir intervalos hay que saber si los datos se parecen a una normal, si tienen colas largas o valores atípicos.</p>
+</section>
+<section id="fuente-de-datos-inegi" class="level1">
+<h1>Fuente de datos: INEGI</h1>
+<p>Todos los datos son del INEGI y corresponden al Censo 2020:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Archivo</th>
+<th>Contenido</th>
+<th>Dónde se descarga</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>conjunto_de_datos_ageb_urbana_16_cpv2020.csv</code></td>
+<td>Principales resultados por AGEB y manzana urbana, Michoacán</td>
+<td>Censo 2020 → Datos abiertos</td>
+</tr>
+<tr class="even">
+<td><code>16a.shp</code> (+ <code>.dbf</code>, <code>.shx</code>, <code>.prj</code>, <code>.cpg</code>)</td>
+<td>Polígonos de AGEB urbanas de Michoacán</td>
+<td>Marco Geoestadístico, Censo de Población y Vivienda 2020</td>
+</tr>
+<tr class="odd">
+<td><code>16mun.shp</code> (+ archivos hermanos)</td>
+<td>Polígonos de municipios de Michoacán</td>
+<td>Marco Geoestadístico, Censo de Población y Vivienda 2020</td>
+</tr>
+</tbody>
+</table>
+<p>Los archivos van en una carpeta <code>data/</code> junto a este documento. La clave de Michoacán es <strong>16</strong> y la de Morelia <strong>053</strong>.</p>
+</section>
+<section id="datos-espaciales-de-morelia" class="level1">
+<h1>Datos espaciales de Morelia</h1>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ageb_shp <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/16a.shp"</span>, <span class="at">options =</span> <span class="st">"ENCODING=LATIN1"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(CVE_MUN <span class="sc">==</span> <span class="st">"053"</span>, CVE_LOC <span class="sc">==</span> <span class="st">"0001"</span>)     <span class="co"># AGEB de la ciudad de Morelia</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>mun_shp <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/16mun.shp"</span>, <span class="at">options =</span> <span class="st">"ENCODING=LATIN1"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(CVE_MUN <span class="sc">==</span> <span class="st">"053"</span>)                         <span class="co"># contorno del municipio</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> mun_shp, <span class="at">fill =</span> <span class="st">"#F3EFE6"</span>, <span class="at">color =</span> <span class="st">"#7A6F5D"</span>, <span class="at">linewidth =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> ageb_shp, <span class="at">fill =</span> <span class="st">"#1B6A72"</span>, <span class="at">color =</span> <span class="st">"white"</span>, <span class="at">linewidth =</span> <span class="fl">0.05</span>) <span class="sc">+</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"La ciudad de Morelia dentro de su municipio"</span>,</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="fu">paste</span>(<span class="st">"AGEB urbanas en la ciudad:"</span>, <span class="fu">nrow</span>(ageb_shp)),</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Fuente: INEGI - Marco Geoestadístico 2020"</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_void</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>))</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/mapas-base-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>La mancha urbana ocupa solo una parte del municipio; el resto son zonas rurales, la sierra y pueblos como Capula o Jesús del Monte, que no entran en este análisis.</p>
+</section>
+<section id="lectura-de-datos" class="level1">
+<h1>Lectura de datos</h1>
+<p>El CSV del INEGI trae una fila por manzana y además filas con totales. Me quedo con las filas que son <strong>total de AGEB</strong> (<code>MZA == "000"</code>, <code>AGEB != "0000"</code>) de la localidad <strong>Morelia</strong> (<code>LOC == "0001"</code>). El INEGI marca con <code>*</code> los datos ocultos por confidencialidad y con <code>N/D</code> los no disponibles; los leo como <code>NA</code>.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>censo <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"data/conjunto_de_datos_ageb_urbana_16_cpv2020.csv"</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">col_types =</span> <span class="fu">cols</span>(<span class="at">.default =</span> <span class="fu">col_character</span>()),</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">na =</span> <span class="fu">c</span>(<span class="st">"*"</span>, <span class="st">"N/D"</span>, <span class="st">""</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>ageb_morelia <span class="ot">&lt;-</span> censo <span class="sc">|&gt;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(MUN <span class="sc">==</span> <span class="st">"053"</span>, LOC <span class="sc">==</span> <span class="st">"0001"</span>, MZA <span class="sc">==</span> <span class="st">"000"</span>, AGEB <span class="sc">!=</span> <span class="st">"0000"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">CVEGEO =</span> <span class="fu">paste0</span>(ENTIDAD, MUN, LOC, AGEB),     <span class="co"># misma clave que el shapefile</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(POBTOT<span class="sc">:</span>VPH_SINTIC, as.numeric)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(ageb_morelia)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 412</code></pre>
+</div>
+</div>
+<section id="construcción-de-indicadores" class="level2">
+<h2 class="anchored" data-anchor-id="construcción-de-indicadores">Construcción de indicadores</h2>
+<p>A diferencia de los datos municipales, aquí casi todo viene como <strong>conteo</strong> de personas o viviendas, así que los porcentajes los calculo yo, cada uno con su denominador correcto:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Cálculo</th>
+<th>Qué mide</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>poblacion</code></td>
+<td><code>POBTOT</code></td>
+<td>Habitantes de la AGEB</td>
+</tr>
+<tr class="even">
+<td><code>pct_65</code></td>
+<td><code>POB65_MAS / POBTOT</code></td>
+<td>Envejecimiento de la zona</td>
+</tr>
+<tr class="odd">
+<td><code>escolaridad</code></td>
+<td><code>GRAPROES</code></td>
+<td>Años promedio de estudio (15 años y más)</td>
+</tr>
+<tr class="even">
+<td><code>pct_imss</code></td>
+<td><code>PDER_IMSS / POBTOT</code></td>
+<td>Afiliación al IMSS (empleo formal)</td>
+</tr>
+<tr class="odd">
+<td><code>pct_pea</code></td>
+<td><code>PEA / P_12YMAS</code></td>
+<td>Participación en el mercado laboral</td>
+</tr>
+<tr class="even">
+<td><code>pct_internet</code></td>
+<td><code>VPH_INTER / TVIVPARHAB</code></td>
+<td>Viviendas habitadas con internet</td>
+</tr>
+</tbody>
+</table>
+<p>La edad mediana no se publica por AGEB, por eso la edad se mide con el porcentaje de personas de 65 años y más.</p>
+<p>Las AGEB con muy poca gente (zonas industriales, parques, fraccionamientos recién construidos) generan porcentajes absurdos: con 8 habitantes, una sola persona mueve el indicador 12 puntos y salen valores de 0 % o 100 %. Por eso descarto las AGEB con <strong>menos de 100 habitantes</strong>.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>min_hab <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>datos <span class="ot">&lt;-</span> ageb_morelia <span class="sc">|&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    CVEGEO, AGEB,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">poblacion    =</span> POBTOT,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_65       =</span> <span class="dv">100</span> <span class="sc">*</span> POB65_MAS <span class="sc">/</span> POBTOT,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">escolaridad  =</span> GRAPROES,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_imss     =</span> <span class="dv">100</span> <span class="sc">*</span> PDER_IMSS <span class="sc">/</span> POBTOT,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_pea      =</span> <span class="dv">100</span> <span class="sc">*</span> PEA <span class="sc">/</span> P_12YMAS,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_internet =</span> <span class="dv">100</span> <span class="sc">*</span> VPH_INTER <span class="sc">/</span> TVIVPARHAB</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>descartadas <span class="ot">&lt;-</span> <span class="fu">sum</span>(datos<span class="sc">$</span>poblacion <span class="sc">&lt;</span> min_hab)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>datos <span class="ot">&lt;-</span> datos <span class="sc">|&gt;</span> <span class="fu">filter</span>(poblacion <span class="sc">&gt;=</span> min_hab)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">AGEB en la ciudad</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">nrow</span>(ageb_morelia),</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Descartadas (&lt; 100 hab.)</span><span class="st">`</span> <span class="ot">=</span> descartadas,</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">AGEB analizadas</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">nrow</span>(datos)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">AGEB en la ciudad</th>
+<th style="text-align: right;">Descartadas (&lt; 100 hab.)</th>
+<th style="text-align: right;">AGEB analizadas</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">412</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">358</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="distancia-al-centro-histórico" class="level2">
+<h2 class="anchored" data-anchor-id="distancia-al-centro-histórico">Distancia al centro histórico</h2>
+<p>Para poder hablar de “centro” y “periferia” con números y no solo a ojo, calculo la distancia en kilómetros desde el centro de cada AGEB hasta la Catedral de Morelia.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>catedral <span class="ot">&lt;-</span> <span class="fu">st_sfc</span>(<span class="fu">st_point</span>(<span class="fu">c</span>(<span class="sc">-</span><span class="fl">101.1923</span>, <span class="fl">19.7024</span>)), <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">|&gt;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="fu">st_crs</span>(ageb_shp))</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>distancias <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">CVEGEO  =</span> ageb_shp<span class="sc">$</span>CVEGEO,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">dist_km =</span> <span class="fu">as.numeric</span>(<span class="fu">st_distance</span>(<span class="fu">st_centroid</span>(<span class="fu">st_geometry</span>(ageb_shp)), catedral)) <span class="sc">/</span> <span class="dv">1000</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>datos <span class="ot">&lt;-</span> datos <span class="sc">|&gt;</span> <span class="fu">left_join</span>(distancias, <span class="at">by =</span> <span class="st">"CVEGEO"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+</section>
+<section id="estadísticas-descriptivas" class="level1">
+<h1>Estadísticas descriptivas</h1>
+<p>Calculo las medidas de tendencia central y de dispersión vistas en clase (rango, desviación media, varianza, desviación estándar, RIC y coeficiente de variación). Agrego dos más que ayudan con tantos datos: la <strong>asimetría</strong> (positiva si la cola larga va a la derecha, negativa si va a la izquierda) y el número de <strong>valores atípicos</strong> según la regla de 1.5 × RIC.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>desviacion_media <span class="ot">&lt;-</span> <span class="cf">function</span>(x) <span class="fu">mean</span>(<span class="fu">abs</span>(x <span class="sc">-</span> <span class="fu">mean</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>asimetria <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">na.omit</span>(x)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>((x <span class="sc">-</span> <span class="fu">mean</span>(x))<span class="sc">^</span><span class="dv">3</span>) <span class="sc">/</span> <span class="fu">sd</span>(x)<span class="sc">^</span><span class="dv">3</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>etiquetas_var <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">poblacion    =</span> <span class="st">"Población (hab.)"</span>,</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">pct_65       =</span> <span class="st">"65 años y más (%)"</span>,</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">escolaridad  =</span> <span class="st">"Escolaridad (años)"</span>,</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">pct_imss     =</span> <span class="st">"IMSS (%)"</span>,</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">pct_pea      =</span> <span class="st">"PEA (%)"</span>,</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">pct_internet =</span> <span class="st">"Internet (%)"</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>medidas <span class="ot">&lt;-</span> datos <span class="sc">|&gt;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">all_of</span>(<span class="fu">names</span>(etiquetas_var))) <span class="sc">|&gt;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"valor"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(variable) <span class="sc">|&gt;</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">n                =</span> <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(valor)),</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">media            =</span> <span class="fu">mean</span>(valor, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">mediana          =</span> <span class="fu">median</span>(valor, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">minimo           =</span> <span class="fu">min</span>(valor, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">maximo           =</span> <span class="fu">max</span>(valor, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">rango            =</span> maximo <span class="sc">-</span> minimo,</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">desviacion_media =</span> <span class="fu">desviacion_media</span>(valor),</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">varianza         =</span> <span class="fu">var</span>(valor, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">desv_estandar    =</span> <span class="fu">sd</span>(valor, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">ric              =</span> <span class="fu">IQR</span>(valor, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">cv_porcentaje    =</span> <span class="dv">100</span> <span class="sc">*</span> desv_estandar <span class="sc">/</span> media,</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">asimetria        =</span> <span class="fu">asimetria</span>(valor),</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">atipicos         =</span> <span class="fu">sum</span>(valor <span class="sc">&lt;</span> <span class="fu">quantile</span>(valor, <span class="fl">0.25</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">-</span> <span class="fl">1.5</span> <span class="sc">*</span> ric <span class="sc">|</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>                           valor <span class="sc">&gt;</span> <span class="fu">quantile</span>(valor, <span class="fl">0.75</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> ric, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">variable =</span> <span class="fu">factor</span>(variable, <span class="at">levels =</span> <span class="fu">names</span>(etiquetas_var))) <span class="sc">|&gt;</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(variable)</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>medidas <span class="sc">|&gt;</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">variable =</span> etiquetas_var[<span class="fu">as.character</span>(variable)]) <span class="sc">|&gt;</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">2</span>, <span class="at">format.args =</span> <span class="fu">list</span>(<span class="at">big.mark =</span> <span class="st">","</span>, <span class="at">scientific =</span> <span class="cn">FALSE</span>),</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>               <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Variable"</span>, <span class="st">"n"</span>, <span class="st">"Media"</span>, <span class="st">"Mediana"</span>, <span class="st">"Mín."</span>, <span class="st">"Máx."</span>, <span class="st">"Rango"</span>,</span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>                             <span class="st">"Desv. media"</span>, <span class="st">"Varianza"</span>, <span class="st">"D.E."</span>, <span class="st">"RIC"</span>, <span class="st">"CV (%)"</span>,</span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>                             <span class="st">"Asimetría"</span>, <span class="st">"Atípicos"</span>))</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 2%">
+<col style="width: 6%">
+<col style="width: 6%">
+<col style="width: 5%">
+<col style="width: 6%">
+<col style="width: 6%">
+<col style="width: 8%">
+<col style="width: 9%">
+<col style="width: 6%">
+<col style="width: 6%">
+<col style="width: 5%">
+<col style="width: 7%">
+<col style="width: 6%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: right;">n</th>
+<th style="text-align: right;">Media</th>
+<th style="text-align: right;">Mediana</th>
+<th style="text-align: right;">Mín.</th>
+<th style="text-align: right;">Máx.</th>
+<th style="text-align: right;">Rango</th>
+<th style="text-align: right;">Desv. media</th>
+<th style="text-align: right;">Varianza</th>
+<th style="text-align: right;">D.E.</th>
+<th style="text-align: right;">RIC</th>
+<th style="text-align: right;">CV (%)</th>
+<th style="text-align: right;">Asimetría</th>
+<th style="text-align: right;">Atípicos</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Población (hab.)</td>
+<td style="text-align: right;">358</td>
+<td style="text-align: right;">2,070.74</td>
+<td style="text-align: right;">1,974.00</td>
+<td style="text-align: right;">105.00</td>
+<td style="text-align: right;">6,651.00</td>
+<td style="text-align: right;">6,546.00</td>
+<td style="text-align: right;">1,142.52</td>
+<td style="text-align: right;">2,036,314.43</td>
+<td style="text-align: right;">1,426.99</td>
+<td style="text-align: right;">1,917.00</td>
+<td style="text-align: right;">68.91</td>
+<td style="text-align: right;">0.74</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">65 años y más (%)</td>
+<td style="text-align: right;">355</td>
+<td style="text-align: right;">7.83</td>
+<td style="text-align: right;">5.92</td>
+<td style="text-align: right;">0.47</td>
+<td style="text-align: right;">27.62</td>
+<td style="text-align: right;">27.16</td>
+<td style="text-align: right;">4.36</td>
+<td style="text-align: right;">31.39</td>
+<td style="text-align: right;">5.60</td>
+<td style="text-align: right;">6.39</td>
+<td style="text-align: right;">71.52</td>
+<td style="text-align: right;">1.31</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Escolaridad (años)</td>
+<td style="text-align: right;">358</td>
+<td style="text-align: right;">11.00</td>
+<td style="text-align: right;">10.88</td>
+<td style="text-align: right;">6.43</td>
+<td style="text-align: right;">15.43</td>
+<td style="text-align: right;">9.00</td>
+<td style="text-align: right;">1.85</td>
+<td style="text-align: right;">4.79</td>
+<td style="text-align: right;">2.19</td>
+<td style="text-align: right;">3.43</td>
+<td style="text-align: right;">19.89</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">IMSS (%)</td>
+<td style="text-align: right;">358</td>
+<td style="text-align: right;">43.82</td>
+<td style="text-align: right;">45.32</td>
+<td style="text-align: right;">15.92</td>
+<td style="text-align: right;">65.40</td>
+<td style="text-align: right;">49.48</td>
+<td style="text-align: right;">8.73</td>
+<td style="text-align: right;">114.45</td>
+<td style="text-align: right;">10.70</td>
+<td style="text-align: right;">15.07</td>
+<td style="text-align: right;">24.42</td>
+<td style="text-align: right;">-0.45</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">PEA (%)</td>
+<td style="text-align: right;">358</td>
+<td style="text-align: right;">64.66</td>
+<td style="text-align: right;">64.61</td>
+<td style="text-align: right;">48.06</td>
+<td style="text-align: right;">81.43</td>
+<td style="text-align: right;">33.37</td>
+<td style="text-align: right;">4.15</td>
+<td style="text-align: right;">29.06</td>
+<td style="text-align: right;">5.39</td>
+<td style="text-align: right;">6.30</td>
+<td style="text-align: right;">8.34</td>
+<td style="text-align: right;">0.09</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Internet (%)</td>
+<td style="text-align: right;">356</td>
+<td style="text-align: right;">64.53</td>
+<td style="text-align: right;">65.68</td>
+<td style="text-align: right;">5.06</td>
+<td style="text-align: right;">99.23</td>
+<td style="text-align: right;">94.17</td>
+<td style="text-align: right;">15.12</td>
+<td style="text-align: right;">365.72</td>
+<td style="text-align: right;">19.12</td>
+<td style="text-align: right;">26.48</td>
+<td style="text-align: right;">29.64</td>
+<td style="text-align: right;">-0.67</td>
+<td style="text-align: right;">5</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>El <strong>CV</strong> permite comparar la dispersión de variables con unidades distintas. La PEA es la variable más pareja entre zonas de la ciudad y el porcentaje de adultos mayores la más desigual. La población también tiene un CV alto, pero eso se debe sobre todo a cómo el INEGI traza las AGEB, no a una diferencia social.</p>
+</section>
+<section id="población-por-ageb" class="level1">
+<h1>Población por AGEB</h1>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapa_var</span>(<span class="st">"poblacion"</span>, <span class="st">"Habitantes por AGEB"</span>, <span class="st">"Habitantes"</span>, <span class="at">paleta =</span> <span class="st">"mako"</span>,</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>         <span class="at">etiquetas =</span> <span class="fu">label_comma</span>())</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="histograma" class="level2">
+<h2 class="anchored" data-anchor-id="histograma">Histograma</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">histograma</span>(<span class="st">"poblacion"</span>, <span class="st">"Habitantes"</span>, <span class="st">"Distribución de la población por AGEB"</span>) <span class="sc">+</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>())</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfica-de-densidad" class="level2">
+<h2 class="anchored" data-anchor-id="gráfica-de-densidad">Gráfica de densidad</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">densidad</span>(<span class="st">"poblacion"</span>, <span class="st">"Habitantes"</span>, <span class="st">"Densidad de la población por AGEB"</span>) <span class="sc">+</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>())</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="boxplot" class="level2">
+<h2 class="anchored" data-anchor-id="boxplot">Boxplot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">caja</span>(<span class="st">"poblacion"</span>, <span class="st">"Habitantes"</span>, <span class="st">"Boxplot de la población por AGEB"</span>) <span class="sc">+</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>())</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-de-violín" class="level2">
+<h2 class="anchored" data-anchor-id="gráfico-de-violín">Gráfico de violín</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">violin</span>(<span class="st">"poblacion"</span>, <span class="st">"Habitantes"</span>, <span class="st">"Violín de la población por AGEB"</span>) <span class="sc">+</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>())</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="q-q-plot" class="level2">
+<h2 class="anchored" data-anchor-id="q-q-plot">Q-Q Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qq</span>(<span class="st">"poblacion"</span>, <span class="st">"Habitantes"</span>, <span class="st">"Q-Q plot: población por AGEB"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dot-plot" class="level2">
+<h2 class="anchored" data-anchor-id="dot-plot">Dot plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dot_extremos</span>(<span class="st">"poblacion"</span>, <span class="st">"Habitantes"</span>, <span class="st">"AGEB más y menos pobladas"</span>) <span class="sc">+</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>())</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="lo-que-me-dice-la-población" class="level2">
+<h2 class="anchored" data-anchor-id="lo-que-me-dice-la-población">Lo que me dice la población</h2>
+<ul>
+<li>Una AGEB típica de Morelia tiene alrededor de 1,974 habitantes (mediana), aunque el rango va de 105 a 6,651.</li>
+<li>La distribución tiene asimetría positiva (0.74): la mayoría de las AGEB están entre 1,000 y 3,000 habitantes y unas pocas, muy densas, forman la cola derecha. Por eso la media (2,071) queda arriba de la mediana.</li>
+<li>El mapa muestra un patrón claro: las AGEB <strong>más pobladas están cerca del centro</strong>, mientras que en la periferia hay muchas AGEB con poca gente. La correlación entre población y distancia a la Catedral es de -0.33.</li>
+<li>Esta variable hay que leerla con cuidado: el INEGI dibuja las AGEB con un tamaño de población más o menos parecido, así que su dispersión dice más de cómo se trazó el marco geoestadístico que de diferencias reales entre zonas.</li>
+</ul>
+</section>
+</section>
+<section id="población-de-65-años-y-más" class="level1">
+<h1>Población de 65 años y más (%)</h1>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapa_var</span>(<span class="st">"pct_65"</span>, <span class="st">"Porcentaje de población de 65 años y más"</span>, <span class="st">"%"</span>, <span class="at">paleta =</span> <span class="st">"rocket"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="histograma-1" class="level2">
+<h2 class="anchored" data-anchor-id="histograma-1">Histograma</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">histograma</span>(<span class="st">"pct_65"</span>, <span class="st">"Población de 65 años y más (%)"</span>, <span class="st">"Distribución del % de adultos mayores"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfica-de-densidad-1" class="level2">
+<h2 class="anchored" data-anchor-id="gráfica-de-densidad-1">Gráfica de densidad</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">densidad</span>(<span class="st">"pct_65"</span>, <span class="st">"Población de 65 años y más (%)"</span>, <span class="st">"Densidad del % de adultos mayores"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="boxplot-1" class="level2">
+<h2 class="anchored" data-anchor-id="boxplot-1">Boxplot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">caja</span>(<span class="st">"pct_65"</span>, <span class="st">"Población de 65 años y más (%)"</span>, <span class="st">"Boxplot del % de adultos mayores"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-de-violín-1" class="level2">
+<h2 class="anchored" data-anchor-id="gráfico-de-violín-1">Gráfico de violín</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">violin</span>(<span class="st">"pct_65"</span>, <span class="st">"Población de 65 años y más (%)"</span>, <span class="st">"Violín del % de adultos mayores"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="q-q-plot-1" class="level2">
+<h2 class="anchored" data-anchor-id="q-q-plot-1">Q-Q Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qq</span>(<span class="st">"pct_65"</span>, <span class="st">"Población de 65 años y más (%)"</span>, <span class="st">"Q-Q plot: % de adultos mayores"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dot-plot-1" class="level2">
+<h2 class="anchored" data-anchor-id="dot-plot-1">Dot plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dot_extremos</span>(<span class="st">"pct_65"</span>, <span class="st">"Población de 65 años y más (%)"</span>, <span class="st">"AGEB más y menos envejecidas"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="lo-que-me-dice-la-edad" class="level2">
+<h2 class="anchored" data-anchor-id="lo-que-me-dice-la-edad">Lo que me dice la edad</h2>
+<ul>
+<li>En la AGEB típica, el 5.9% de la población tiene 65 años o más, pero hay zonas donde llega al 27.6%, es decir, más de uno de cada cuatro habitantes.</li>
+<li>Es la distribución más asimétrica de todas (asimetría de 1.31) y la que tiene más valores atípicos (18). El histograma está cargado a la izquierda, con una cola larga hacia la derecha, y en el Q-Q plot los puntos de arriba se despegan de la recta.</li>
+<li>El mapa explica esa cola: los adultos mayores se concentran en el <strong>centro histórico y las colonias más antiguas</strong>. Dentro de 2 km de la Catedral la mediana es de 16.2%, y a más de 6 km baja a 3.6%. La correlación con la distancia al centro es de -0.59.</li>
+<li>La lectura es que la ciudad crece hacia afuera con familias jóvenes que se mudan a fraccionamientos nuevos, mientras el centro envejece con quienes llegaron hace décadas.</li>
+</ul>
+</section>
+</section>
+<section id="escolaridad-promedio" class="level1">
+<h1>Escolaridad promedio</h1>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapa_var</span>(<span class="st">"escolaridad"</span>, <span class="st">"Grado promedio de escolaridad"</span>, <span class="st">"Años"</span>, <span class="at">paleta =</span> <span class="st">"viridis"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="histograma-2" class="level2">
+<h2 class="anchored" data-anchor-id="histograma-2">Histograma</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">histograma</span>(<span class="st">"escolaridad"</span>, <span class="st">"Años de estudio"</span>, <span class="st">"Distribución de la escolaridad promedio"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfica-de-densidad-2" class="level2">
+<h2 class="anchored" data-anchor-id="gráfica-de-densidad-2">Gráfica de densidad</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">densidad</span>(<span class="st">"escolaridad"</span>, <span class="st">"Años de estudio"</span>, <span class="st">"Densidad de la escolaridad promedio"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="boxplot-2" class="level2">
+<h2 class="anchored" data-anchor-id="boxplot-2">Boxplot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">caja</span>(<span class="st">"escolaridad"</span>, <span class="st">"Años de estudio"</span>, <span class="st">"Boxplot de la escolaridad promedio"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-de-violín-2" class="level2">
+<h2 class="anchored" data-anchor-id="gráfico-de-violín-2">Gráfico de violín</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">violin</span>(<span class="st">"escolaridad"</span>, <span class="st">"Años de estudio"</span>, <span class="st">"Violín de la escolaridad promedio"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="q-q-plot-2" class="level2">
+<h2 class="anchored" data-anchor-id="q-q-plot-2">Q-Q Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qq</span>(<span class="st">"escolaridad"</span>, <span class="st">"Años de estudio"</span>, <span class="st">"Q-Q plot: escolaridad promedio"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dot-plot-2" class="level2">
+<h2 class="anchored" data-anchor-id="dot-plot-2">Dot plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dot_extremos</span>(<span class="st">"escolaridad"</span>, <span class="st">"Años de estudio"</span>, <span class="st">"AGEB con mayor y menor escolaridad"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="lo-que-me-dice-la-escolaridad" class="level2">
+<h2 class="anchored" data-anchor-id="lo-que-me-dice-la-escolaridad">Lo que me dice la escolaridad</h2>
+<ul>
+<li>En promedio, la población de 15 años y más de una AGEB estudió 11.0 años, que equivale a tener la secundaria terminada y algo de preparatoria.</li>
+<li>La distribución es casi simétrica (asimetría de 0.12) y no tiene valores atípicos, pero eso no significa que la ciudad sea pareja: entre la AGEB con menos estudios (6.4 años, primaria apenas terminada) y la de más (15.4 años, equivalente a licenciatura) hay 9.0 años de diferencia.</li>
+<li>La curva de densidad es ancha y aplanada, como una meseta entre 8 y 14 años, y no como una campana con un pico claro. Por eso en el Q-Q plot los extremos se separan de la recta: la distribución tiene “hombros” donde una normal tendría colas.</li>
+<li>En el mapa, la escolaridad más alta se concentra en el <strong>centro-sur y el sureste</strong> de la ciudad y la más baja en el <strong>norte y la periferia poniente</strong>. A diferencia de la edad, aquí no hay un patrón centro-periferia (correlación con la distancia de -0.12); la división es más bien entre zonas de la ciudad.</li>
+</ul>
+</section>
+</section>
+<section id="afiliados-al-imss" class="level1">
+<h1>Afiliados al IMSS (%)</h1>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapa_var</span>(<span class="st">"pct_imss"</span>, <span class="st">"Porcentaje de población afiliada al IMSS"</span>, <span class="st">"%"</span>, <span class="at">paleta =</span> <span class="st">"mako"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="histograma-3" class="level2">
+<h2 class="anchored" data-anchor-id="histograma-3">Histograma</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">histograma</span>(<span class="st">"pct_imss"</span>, <span class="st">"Afiliados al IMSS (%)"</span>, <span class="st">"Distribución de la afiliación al IMSS"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfica-de-densidad-3" class="level2">
+<h2 class="anchored" data-anchor-id="gráfica-de-densidad-3">Gráfica de densidad</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">densidad</span>(<span class="st">"pct_imss"</span>, <span class="st">"Afiliados al IMSS (%)"</span>, <span class="st">"Densidad de la afiliación al IMSS"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="boxplot-3" class="level2">
+<h2 class="anchored" data-anchor-id="boxplot-3">Boxplot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">caja</span>(<span class="st">"pct_imss"</span>, <span class="st">"Afiliados al IMSS (%)"</span>, <span class="st">"Boxplot de la afiliación al IMSS"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-de-violín-3" class="level2">
+<h2 class="anchored" data-anchor-id="gráfico-de-violín-3">Gráfico de violín</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">violin</span>(<span class="st">"pct_imss"</span>, <span class="st">"Afiliados al IMSS (%)"</span>, <span class="st">"Violín de la afiliación al IMSS"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="q-q-plot-3" class="level2">
+<h2 class="anchored" data-anchor-id="q-q-plot-3">Q-Q Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qq</span>(<span class="st">"pct_imss"</span>, <span class="st">"Afiliados al IMSS (%)"</span>, <span class="st">"Q-Q plot: afiliación al IMSS"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dot-plot-3" class="level2">
+<h2 class="anchored" data-anchor-id="dot-plot-3">Dot plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dot_extremos</span>(<span class="st">"pct_imss"</span>, <span class="st">"Afiliados al IMSS (%)"</span>, <span class="st">"AGEB con mayor y menor afiliación al IMSS"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="lo-que-me-dice-el-imss" class="level2">
+<h2 class="anchored" data-anchor-id="lo-que-me-dice-el-imss">Lo que me dice el IMSS</h2>
+<ul>
+<li>Tener IMSS depende de tener (o de que alguien en la familia tenga) un <strong>empleo formal</strong>, así que este indicador funciona como termómetro de la formalidad laboral.</li>
+<li>En la AGEB típica está afiliado el 45.3% de la población, con un rango que va del 15.9% al 65.4%. En las zonas con menos afiliación, solo uno de cada seis habitantes tiene IMSS.</li>
+<li>La asimetría es negativa (-0.45): la mayoría de las AGEB está entre 35 % y 55 %, y la cola larga va hacia los valores bajos. Esas AGEB de la cola izquierda coinciden con las de menor escolaridad, lo que sugiere que donde hay menos estudios también hay más informalidad.</li>
+<li>Un CV de 24.4% indica una dispersión moderada: hay diferencias reales entre zonas, pero menos marcadas que en el acceso a internet o en el envejecimiento.</li>
+</ul>
+</section>
+</section>
+<section id="población-de-12-años-y-más-económicamente-activa" class="level1">
+<h1>Población de 12 años y más económicamente activa (%)</h1>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapa_var</span>(<span class="st">"pct_pea"</span>, <span class="st">"Porcentaje de población de 12 años y más económicamente activa"</span>, <span class="st">"%"</span>,</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>         <span class="at">paleta =</span> <span class="st">"cividis"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-29-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="histograma-4" class="level2">
+<h2 class="anchored" data-anchor-id="histograma-4">Histograma</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">histograma</span>(<span class="st">"pct_pea"</span>, <span class="st">"PEA (%)"</span>, <span class="st">"Distribución de la PEA"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfica-de-densidad-4" class="level2">
+<h2 class="anchored" data-anchor-id="gráfica-de-densidad-4">Gráfica de densidad</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">densidad</span>(<span class="st">"pct_pea"</span>, <span class="st">"PEA (%)"</span>, <span class="st">"Densidad de la PEA"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="boxplot-4" class="level2">
+<h2 class="anchored" data-anchor-id="boxplot-4">Boxplot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">caja</span>(<span class="st">"pct_pea"</span>, <span class="st">"PEA (%)"</span>, <span class="st">"Boxplot de la PEA"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-32-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-de-violín-4" class="level2">
+<h2 class="anchored" data-anchor-id="gráfico-de-violín-4">Gráfico de violín</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">violin</span>(<span class="st">"pct_pea"</span>, <span class="st">"PEA (%)"</span>, <span class="st">"Violín de la PEA"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-33-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="q-q-plot-4" class="level2">
+<h2 class="anchored" data-anchor-id="q-q-plot-4">Q-Q Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qq</span>(<span class="st">"pct_pea"</span>, <span class="st">"PEA (%)"</span>, <span class="st">"Q-Q plot: PEA"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-34-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dot-plot-4" class="level2">
+<h2 class="anchored" data-anchor-id="dot-plot-4">Dot plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dot_extremos</span>(<span class="st">"pct_pea"</span>, <span class="st">"PEA (%)"</span>, <span class="st">"AGEB con mayor y menor participación laboral"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-35-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="lo-que-me-dice-la-pea" class="level2">
+<h2 class="anchored" data-anchor-id="lo-que-me-dice-la-pea">Lo que me dice la PEA</h2>
+<ul>
+<li>La PEA es el porcentaje de personas de 12 años o más que trabajan o buscan trabajo. En Morelia el promedio por AGEB es de 64.7%, y la media y la mediana son prácticamente iguales.</li>
+<li>Es la variable más pareja de todas (CV de 8.3%) y la más cercana a una campana: el histograma es simétrico (asimetría de 0.09) y en el Q-Q plot casi todos los puntos siguen la recta, salvo algunos en las puntas.</li>
+<li>Los valores atípicos bajos (cerca de 48%) corresponden a AGEB con muchos adultos mayores. Tiene sentido: los jubilados cuentan como población no activa. Por lo mismo, la PEA sube conforme uno se aleja del centro (correlación con la distancia de 0.38).</li>
+<li>Estar “activo” no dice nada sobre la calidad del empleo; para eso hay que compararla con el IMSS, como hago más adelante.</li>
+</ul>
+</section>
+</section>
+<section id="viviendas-con-internet" class="level1">
+<h1>Viviendas con internet (%)</h1>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapa_var</span>(<span class="st">"pct_internet"</span>, <span class="st">"Porcentaje de viviendas habitadas con internet"</span>, <span class="st">"%"</span>,</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>         <span class="at">paleta =</span> <span class="st">"viridis"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-36-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="histograma-5" class="level2">
+<h2 class="anchored" data-anchor-id="histograma-5">Histograma</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">histograma</span>(<span class="st">"pct_internet"</span>, <span class="st">"Viviendas con internet (%)"</span>, <span class="st">"Distribución del acceso a internet"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-37-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfica-de-densidad-5" class="level2">
+<h2 class="anchored" data-anchor-id="gráfica-de-densidad-5">Gráfica de densidad</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">densidad</span>(<span class="st">"pct_internet"</span>, <span class="st">"Viviendas con internet (%)"</span>, <span class="st">"Densidad del acceso a internet"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-38-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="boxplot-5" class="level2">
+<h2 class="anchored" data-anchor-id="boxplot-5">Boxplot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">caja</span>(<span class="st">"pct_internet"</span>, <span class="st">"Viviendas con internet (%)"</span>, <span class="st">"Boxplot del acceso a internet"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gráfico-de-violín-5" class="level2">
+<h2 class="anchored" data-anchor-id="gráfico-de-violín-5">Gráfico de violín</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">violin</span>(<span class="st">"pct_internet"</span>, <span class="st">"Viviendas con internet (%)"</span>, <span class="st">"Violín del acceso a internet"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-40-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="q-q-plot-5" class="level2">
+<h2 class="anchored" data-anchor-id="q-q-plot-5">Q-Q Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qq</span>(<span class="st">"pct_internet"</span>, <span class="st">"Viviendas con internet (%)"</span>, <span class="st">"Q-Q plot: acceso a internet"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-41-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dot-plot-5" class="level2">
+<h2 class="anchored" data-anchor-id="dot-plot-5">Dot plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dot_extremos</span>(<span class="st">"pct_internet"</span>, <span class="st">"Viviendas con internet (%)"</span>, <span class="st">"AGEB con mayor y menor acceso a internet"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-42-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="lo-que-me-dice-el-internet" class="level2">
+<h2 class="anchored" data-anchor-id="lo-que-me-dice-el-internet">Lo que me dice el internet</h2>
+<ul>
+<li>En la AGEB típica, 66 de cada 100 viviendas tienen internet. Pero esta es la variable social con el rango más amplio: va del 5.1% al 99.2%. Hay zonas donde prácticamente todas las casas están conectadas y otras donde casi ninguna.</li>
+<li>La asimetría es negativa (-0.67): la mayoría de las AGEB tienen buen acceso y la cola larga va hacia los valores bajos. Los valores atípicos son todos de ese lado, AGEB muy rezagadas.</li>
+<li>El mapa del internet se parece mucho al de escolaridad, con el sur y el sureste mejor conectados y el norte y la periferia rezagados. Esa coincidencia la reviso con la correlación más abajo.</li>
+<li>Para efectos de la pandemia (el censo se levantó en marzo de 2020), esto importa: en las AGEB con poco internet, las clases y el trabajo a distancia eran mucho más difíciles.</li>
+</ul>
+</section>
+</section>
+<section id="alguna-variable-es-normal" class="level1">
+<h1>¿Alguna variable es normal?</h1>
+<p>Con cientos de datos los Q-Q plots ya permiten opinar sobre la normalidad, pero conviene confirmarlo con una prueba. Uso la de <strong>Shapiro–Wilk</strong>, cuya hipótesis nula es que los datos vienen de una normal; un valor p menor a 0.05 lleva a rechazarla.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">variable =</span> <span class="fu">names</span>(etiquetas_var)) <span class="sc">|&gt;</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">p =</span> <span class="fu">map_dbl</span>(variable, \(v) <span class="fu">shapiro.test</span>(datos[[v]])<span class="sc">$</span>p.value),</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">Variable =</span> etiquetas_var[variable],</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">W =</span> <span class="fu">map_dbl</span>(variable, \(v) <span class="fu">shapiro.test</span>(datos[[v]])<span class="sc">$</span>statistic),</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Valor p</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">if_else</span>(p <span class="sc">&lt;</span> <span class="fl">0.001</span>, <span class="st">"&lt; 0.001"</span>, <span class="fu">format</span>(<span class="fu">round</span>(p, <span class="dv">3</span>), <span class="at">nsmall =</span> <span class="dv">3</span>)),</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>    Conclusión <span class="ot">=</span> <span class="fu">if_else</span>(p <span class="sc">&lt;</span> <span class="fl">0.05</span>, <span class="st">"Se rechaza normalidad"</span>, <span class="st">"No se rechaza normalidad"</span>)</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Variable, W, <span class="st">`</span><span class="at">Valor p</span><span class="st">`</span>, Conclusión) <span class="sc">|&gt;</span></span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: right;">W</th>
+<th style="text-align: left;">Valor p</th>
+<th style="text-align: left;">Conclusión</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Población (hab.)</td>
+<td style="text-align: right;">0.946</td>
+<td style="text-align: left;">&lt; 0.001</td>
+<td style="text-align: left;">Se rechaza normalidad</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">65 años y más (%)</td>
+<td style="text-align: right;">0.870</td>
+<td style="text-align: left;">&lt; 0.001</td>
+<td style="text-align: left;">Se rechaza normalidad</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Escolaridad (años)</td>
+<td style="text-align: right;">0.970</td>
+<td style="text-align: left;">&lt; 0.001</td>
+<td style="text-align: left;">Se rechaza normalidad</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">IMSS (%)</td>
+<td style="text-align: right;">0.976</td>
+<td style="text-align: left;">&lt; 0.001</td>
+<td style="text-align: left;">Se rechaza normalidad</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">PEA (%)</td>
+<td style="text-align: right;">0.991</td>
+<td style="text-align: left;">0.030</td>
+<td style="text-align: left;">Se rechaza normalidad</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Internet (%)</td>
+<td style="text-align: right;">0.963</td>
+<td style="text-align: left;">&lt; 0.001</td>
+<td style="text-align: left;">Se rechaza normalidad</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Se rechaza la normalidad en todas las variables, lo cual coincide con lo que se veía en las gráficas. La PEA es la que más se acerca (su valor p es el más alto, apenas por debajo de 0.05). Esto no impide hacer inferencia: con tantas observaciones, el <strong>Teorema Central del Límite</strong> garantiza que la <strong>media muestral</strong> sí se distribuye aproximadamente normal aunque la variable original no lo sea.</p>
+</section>
+<section id="relaciones-entre-variables" class="level1">
+<h1>Relaciones entre variables</h1>
+<section id="matriz-de-correlaciones" class="level2">
+<h2 class="anchored" data-anchor-id="matriz-de-correlaciones">Matriz de correlaciones</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>vars_cor <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"pct_65"</span>, <span class="st">"escolaridad"</span>, <span class="st">"pct_imss"</span>, <span class="st">"pct_pea"</span>, <span class="st">"pct_internet"</span>)</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>cortas <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">pct_65 =</span> <span class="st">"65+ (%)"</span>, <span class="at">escolaridad =</span> <span class="st">"Escolaridad"</span>, <span class="at">pct_imss =</span> <span class="st">"IMSS (%)"</span>,</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">pct_pea =</span> <span class="st">"PEA (%)"</span>, <span class="at">pct_internet =</span> <span class="st">"Internet (%)"</span>)</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>matriz <span class="ot">&lt;-</span> <span class="fu">cor</span>(datos[vars_cor], <span class="at">use =</span> <span class="st">"pairwise.complete.obs"</span>)</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a><span class="fu">as_tibble</span>(matriz, <span class="at">rownames =</span> <span class="st">"v1"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span>v1, <span class="at">names_to =</span> <span class="st">"v2"</span>, <span class="at">values_to =</span> <span class="st">"r"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">v1 =</span> <span class="fu">factor</span>(cortas[v1], <span class="at">levels =</span> cortas),</span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">v2 =</span> <span class="fu">factor</span>(cortas[v2], <span class="at">levels =</span> <span class="fu">rev</span>(cortas))) <span class="sc">|&gt;</span></span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(v1, v2, <span class="at">fill =</span> r)) <span class="sc">+</span></span>
+<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">color =</span> <span class="st">"white"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> <span class="fu">number</span>(r, <span class="at">accuracy =</span> <span class="fl">0.01</span>), <span class="at">color =</span> <span class="fu">abs</span>(r) <span class="sc">&gt;</span> <span class="fl">0.6</span>),</span>
+<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>            <span class="at">size =</span> <span class="fl">4.2</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">`</span><span class="at">TRUE</span><span class="st">`</span> <span class="ot">=</span> <span class="st">"white"</span>, <span class="st">`</span><span class="at">FALSE</span><span class="st">`</span> <span class="ot">=</span> <span class="st">"grey15"</span>)) <span class="sc">+</span></span>
+<span id="cb51-16"><a href="#cb51-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradient2</span>(<span class="at">low =</span> colores<span class="sc">$</span>acento, <span class="at">mid =</span> <span class="st">"white"</span>, <span class="at">high =</span> colores<span class="sc">$</span>base,</span>
+<span id="cb51-17"><a href="#cb51-17" aria-hidden="true" tabindex="-1"></a>                       <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>), <span class="at">name =</span> <span class="st">"r"</span>) <span class="sc">+</span></span>
+<span id="cb51-18"><a href="#cb51-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Correlaciones entre indicadores"</span>, <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb51-19"><a href="#cb51-19" aria-hidden="true" tabindex="-1"></a>  tema <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">panel.grid =</span> <span class="fu">element_blank</span>())</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/correlaciones-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="relación-entre-pea-y-derechohabientes-imss" class="level2">
+<h2 class="anchored" data-anchor-id="relación-entre-pea-y-derechohabientes-imss">Relación entre PEA y derechohabientes IMSS (%)</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(datos, <span class="fu">aes</span>(pct_pea, pct_imss)) <span class="sc">+</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> colores<span class="sc">$</span>base, <span class="at">size =</span> <span class="dv">2</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> colores<span class="sc">$</span>acento, <span class="at">fill =</span> colores<span class="sc">$</span>claro) <span class="sc">+</span></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Relación PEA (%) y derechohabientes IMSS (%)"</span>,</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="fu">paste0</span>(<span class="st">"Cada punto es una AGEB · r = "</span>, <span class="fu">rr</span>(<span class="st">"pct_pea"</span>, <span class="st">"pct_imss"</span>)),</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"PEA (%)"</span>, <span class="at">y =</span> <span class="st">"Afiliados al IMSS (%)"</span>) <span class="sc">+</span></span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>  tema</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-44-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>La correlación entre PEA e IMSS es de apenas <strong>r = 0.1</strong>, prácticamente nula. Que en una zona haya más gente trabajando <strong>no</strong> implica que haya más gente con IMSS. Esto apunta a la informalidad: en muchas AGEB la gente trabaja, pero sin prestaciones. A diferencia del análisis con pocos municipios, aquí hay 358 puntos, así que la banda de confianza de la recta es angosta y el resultado es bastante estable.</p>
+</section>
+<section id="relación-entre-escolaridad-e-internet" class="level2">
+<h2 class="anchored" data-anchor-id="relación-entre-escolaridad-e-internet">Relación entre escolaridad e internet</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(datos, <span class="fu">aes</span>(escolaridad, pct_internet)) <span class="sc">+</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> colores<span class="sc">$</span>base, <span class="at">size =</span> <span class="dv">2</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> colores<span class="sc">$</span>acento, <span class="at">fill =</span> colores<span class="sc">$</span>claro) <span class="sc">+</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Relación escolaridad y viviendas con internet"</span>,</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="fu">paste0</span>(<span class="st">"Cada punto es una AGEB · r = "</span>, <span class="fu">rr</span>(<span class="st">"escolaridad"</span>, <span class="st">"pct_internet"</span>)),</span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Escolaridad promedio (años)"</span>, <span class="at">y =</span> <span class="st">"Viviendas con internet (%)"</span>) <span class="sc">+</span></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>  tema</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="eda_morelia_files/figure-html/unnamed-chunk-45-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Esta es la relación más fuerte de la matriz: <strong>r = 0.86</strong>. Las AGEB con más años de estudio son casi siempre las mejor conectadas, y la escolaridad también se relaciona con el IMSS (r = 0.68). Estas tres variables parecen medir lo mismo desde distintos ángulos: el <strong>nivel socioeconómico</strong> de la zona. Correlación no es causalidad, sin embargo: no es que estudiar “dé” internet, sino que los hogares con más ingreso tienden a tener ambas cosas.</p>
+<p>La otra relación fuerte es negativa, entre adultos mayores y PEA (r = -0.6), y confirma lo que se veía en el mapa: donde hay más jubilados, menos gente forma parte de la fuerza laboral.</p>
+</section>
+</section>
+<section id="conclusiones" class="level1">
+<h1>Conclusiones</h1>
+<ul>
+<li><strong>Morelia tiene dos formas de desigualdad interna.</strong> La primera es <strong>generacional</strong> y va del centro a la periferia: el centro histórico y las colonias antiguas están envejecidas y la periferia es joven. La segunda es <strong>socioeconómica</strong> y va de sur a norte: escolaridad, internet e IMSS son más altos en el sur y sureste y más bajos en el norte.</li>
+<li><strong>La participación laboral es pareja, pero la calidad del empleo no.</strong> La PEA casi no cambia entre zonas y no se relaciona con el IMSS. En toda la ciudad la gente trabaja en proporciones parecidas; lo que cambia es si lo hace con prestaciones.</li>
+<li><strong>Ninguna variable es normal.</strong> La edad y el internet tienen colas largas, la escolaridad es aplanada y la PEA es la que más se acerca a una campana. Para la inferencia esto importa: con 358 observaciones se puede usar el TCL para la media, pero para describir una AGEB “típica” conviene reportar la mediana.</li>
+<li><strong>Bajar al nivel de AGEB valió la pena.</strong> Con cientos de observaciones las formas de las distribuciones se distinguen bien, los atípicos tienen una explicación geográfica y las correlaciones son estables. La limitación es que tuve que descartar 54 AGEB con menos de 100 habitantes y que algunos datos vienen ocultos por confidencialidad.</li>
+</ul>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
